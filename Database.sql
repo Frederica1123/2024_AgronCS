@@ -195,3 +195,208 @@ FROM Trial_Info AS TI JOIN Seed_Info AS SI # AS也能命名table name
 ON TI.Seed_info_id = SI.Seed_ID
 GROUP BY Seed_info_id;
 HAVING AVG(Y) > 76;
+
+
+### MySQL part3 ###
+DESCRIBE Seed_Info;
+
+SELECT * FROM Seed_Info;
+SELECT Maturity FROM Seed_Info;
+SELECT EXP(1), LOG(2), POWER(2,5), SQRT(1029); # 計算機功能
+SELECT PI(), ROUND(PI(),2), CEILING(PI()), FLOOR(PI()); # 取小數、無條件捨棄、無條件進位
+
+SELECT AVG(Yield), MAX(Yield), MIN(Yield) FROM Trial_Info;
+SELECT STD(Yield), VARIANCE(Yield), SQRT(VARIANCE(Yield))
+FROM Trial_Info;
+
+SELECT
+ROUND(STD(Yield),1),
+ROUND(STD(Yield),2),
+ROUND(STD(Yield),3),
+ROUND(STD(Yield),4),
+ROUND(STD(Yield),5) FROM Trial_Info;
+
+# CONCAT('A', 'B') = 把'A'、'B'和在一起變'AB'
+SELECT 'ABC', 'XYZ', CONCAT('ABC', 'XYZ'), 
+LENGTH('A_VERY_LONG_COMPANY_NAME_XYZ'), # 算長度
+LEFT('A_VERY_LONG_COMPANY_NAME_XYZ',5), # 只出現左邊前5個字就好
+RIGHT('A_VERY_LONG_COMPANY_NAME_XYZ',5), # 只出現右邊前5個字就好
+# 從'LONG_COMPANY_NAME'中，將'COMPANY'換成'SEED'
+REPLACE('LONG_COMPANY_NAME', 'COMPANY','SEED'),
+REVERSE('ABCDE'),
+# 從第6個字開始，印出7個字
+SUBSTRING('LONG_COMPANY_NAME', 6, 7); 
+
+SELECT DAY('2024-04-09'), MONTH('2024-04-09'),
+YEAR('2024-04-09');
+
+SELECT HOUR('13:55:15'), MINUTE('13:55:15'),
+SECOND('13:55:15');
+
+SELECT DAYOFWEEK('2024-04-09'), DAYOFMONTH('2024-04-09'),
+DAYOFYEAR('2024-04-09');
+
+SELECT DATE_FORMAT('2024-04-09 15:57:25', '%Y %M %D'),
+DATE_FORMAT('2024-04-09 15:57:25', '%Y %M(%b) %D'),
+DATE_FORMAT('2024-04-09 15:57:25', '%y %c %d'),
+# H =  24小時制, h = 12小時制
+DATE_FORMAT('2024-04-09 15:57:25', '%W %w %H %h %i %s');
+
+# 比一比 JOIN
+SELECT * 
+FROM State_Info
+JOIN Farm_Info
+ON State_Info.State_ID = Farm_Info.State_id;
+
+# 比一比 RIGHT JOIN
+SELECT * 
+FROM State_Info
+RIGHT JOIN Farm_Info
+ON State_Info.State_ID = Farm_Info.State_id;
+
+# 比一比 LEFT JOIN
+SELECT * 
+FROM State_Info
+LEFT JOIN Farm_Info
+ON State_Info.State_ID = Farm_Info.State_id;
+
+# 比一比 LEFT JOIN = RIGHT JOIN(看誰是table A)
+SELECT * 
+FROM State_Info
+RIGHT JOIN Farm_Info
+ON State_Info.State_ID = Farm_Info.State_id;
+
+SELECT * 
+FROM Farm_Info
+RIGHT JOIN State_Info
+ON State_Info.State_ID = Farm_Info.State_id;
+
+# UNION ALL = combine the results
+SELECT * FROM Seed_Info WHERE Maturity > 111;
+SELECT * FROM Seed_Info WHERE Maturity < 108;
+
+SELECT * FROM Seed_Info WHERE Maturity > 111 #記得把分號拿掉
+UNION ALL
+SELECT * FROM Seed_Info WHERE Maturity < 108;
+
+# UNION ALL
+SELECT State_Info.State_name, Farm_Info.Farm_name 
+FROM State_Info
+LEFT JOIN Farm_Info
+ON State_Info.State_ID = Farm_Info.State_id
+UNION ALL
+SELECT State_Info.State_name, Farm_Info.Farm_name 
+FROM State_Info
+RIGHT JOIN Farm_Info
+ON State_Info.State_ID = Farm_Info.State_id;
+# WHERE State_Info.State_ID IS NULL; # 去掉combine時前後表重複的項目
+
+# UNION ALL
+SELECT COUNT(*) FROM Trial_Info
+UNION ALL
+SELECT COUNT(*) FROM Trial_Info WHERE Yield > 80
+UNION ALL
+SELECT AVG(Yield) FROM Trial_Info
+UNION ALL
+SELECT COUNT(*) FROM Trial_Info WHERE Yield > 75.109;
+
+# Subquery
+# SELECT AVG(Yield) FROM Trial_Info
+# SELECT COUNT(*) FROM Trial_Info WHERE Yield > 75.109
+# 通常在真實世界資料庫的data會不斷更新，先算AVG，再給定一個"Yield>75.109"會很麻煩，因為AVG數值可能會不斷改變
+# 可以寫一個類似function的東西:
+SELECT COUNT(*) as 'Trial > AVG'
+FROM Trial_Info
+WHERE Yield > (
+  SELECT AVG(Yield) FROM Trial_Info
+);
+# or
+SELECT * 
+FROM Trial_Info
+WHERE Yield > (
+  SELECT AVG(Yield) FROM Trial_Info
+);
+
+# Subquery
+SELECT Farm_info_id, Disease_rating
+FROM Trial_Info
+WHERE Disease_rating > 4;
+
+SELECT *
+FROM Trial_Info 
+WHERE Farm_info_id IN (
+  SELECT Farm_info_id
+  FROM Trial_Info
+  WHERE Disease_rating > 4
+);
+
+# Subquery
+SELECT MAX(Yield), MIN(Yield) FROM Trial_Info;
+
+SELECT Farm_info_id, 
+AVG(Yield) AS AVG_Yield,
+COUNT(Seed_info_id) AS Num_Seed
+FROM Trial_Info
+GROUP BY Farm_info_id; 
+
+SELECT MAX(AVG_Yield), MIN(AVG_Yield),
+MAX(Num_Seed), MIN(Num_Seed)
+FROM (
+  SELECT Farm_info_id, 
+  AVG(Yield) AS AVG_Yield,
+  COUNT(Seed_info_id) AS Num_Seed
+  FROM Trial_Info
+  GROUP BY Farm_info_id
+)
+AS avg_yield_per_farm; 
+# 當creat a table like FROM(...)，一定要用AS給定table name
+
+SELECT Farm_info_id, Yield,
+Farm_Info.State_id 
+FROM Trial_Info JOIN Farm_Info
+ON Trial_Info.Farm_info_id =
+Farm_Info.Farm_ID
+WHERE State_id <= 2;
+
+SELECT Farm_info_id, State_id, MAX(Yield), MIN(Yield)
+FROM(
+  SELECT Farm_info_id, Yield,
+  Farm_Info.State_id 
+  FROM Trial_Info JOIN Farm_Info
+  ON Trial_Info.Farm_info_id =Farm_Info.Farm_ID
+  WHERE State_id <= 2
+) AS subset_farms
+GROUP BY Farm_info_id;
+
+# 承上，把WHERE State_id <= 2換句話說
+SELECT Farm_info_id, State_id, MAX(Yield), MIN(Yield)
+FROM(
+  SELECT Farm_info_id, Yield,
+  Farm_Info.State_id 
+  FROM Trial_Info 
+    JOIN Farm_Info
+    ON Trial_Info.Farm_info_id =Farm_Info.Farm_ID
+    JOIN State_Info
+    ON Farm_Info.State_id = State_Info.State_ID 
+    WHERE Two_Letters IN ('CA', 'FL')
+    # 也可以寫 WHERE State_name IN ('California', 'Florida')
+) AS subset_farms
+GROUP BY Farm_info_id;
+
+SELECT Farm_info_id, State_id, AVG(Yield), MAX(Yield), MIN(Yield)
+FROM(
+  SELECT Farm_info_id, Yield,
+  Farm_Info.State_id 
+  FROM Trial_Info 
+    JOIN Farm_Info
+    ON Trial_Info.Farm_info_id =Farm_Info.Farm_ID
+    JOIN State_Info
+    ON Farm_Info.State_id = State_Info.State_ID 
+    WHERE Two_Letters IN ('CA', 'FL')
+) AS subset_farms
+WHERE Yield > (
+  SELECT AVG(Yield) FROM Trial_Info
+)
+GROUP BY Farm_info_id
+HAVING MIN(Yield) < 80
+ORDER BY MIN(Yield);
