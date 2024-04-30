@@ -400,3 +400,123 @@ WHERE Yield > (
 GROUP BY Farm_info_id
 HAVING MIN(Yield) < 80
 ORDER BY MIN(Yield);
+
+
+### MySQL part4 ###
+# 前三parts是使用agron5106_1，以下使用agron5106_2
+SHOW Databases;
+USE r11628111_field_trial;
+SHOW Tables;
+DESCRIBE Employee_Info;
+SELECT * FROM Employee_Info;
+# INSERT INTO Employee_Info (Person_name) VALUES ("Fred"); # Fail
+
+# 'Fred_#' works in 'farm_#'
+INSERT INTO Employee_Info (Person_name, Farm_id)
+VALUES("Fred_1",1);
+INSERT INTO Employee_Info (Person_name, Farm_id)
+VALUES("Fred_2",2);
+INSERT INTO Employee_Info (Person_name, Farm_id)
+VALUES("Fred_3",3);
+INSERT INTO Employee_Info (Person_name, Farm_id)
+VALUES("Fred_4",4);
+INSERT INTO Employee_Info (Person_name, Farm_id)
+VALUES("Fred_5",5);
+INSERT INTO Employee_Info (Person_name, Farm_id)
+VALUES("Fred_6",6);
+
+# 縮寫一下
+INSERT INTO Employee_Info (Person_name, Farm_id, Phone_number)
+VALUES("Amy_1",1,'123-456'), ("Amy_2",2,'456-789'), ("Amy_3",3,'101-112'),
+("Amy_4",'131-415'), ("Amy_5",5,'151-617'), ("Amy_6",6,'181-920');
+### ERROR!!!!!!!! ###
+
+# Check一下
+SELECT * FROM Employee_Info;
+WHERE Person_name = 'Fred_2' OR Person_name = 'Amy_5';
+
+# 數各個Farm有幾個工人在工作
+SELECT COUNT(Farm_id), Employee_Info.* 
+FROM Employee_Info
+GROUP BY Farm_id;
+
+# 會error，因為Manager的數字只能是Employee_ID中的數字(看ER圖)
+INSERT INTO Employee_Info 
+(Person_name, Farm_id, Phone_number, Manager)
+VALUES
+("Jhon_t3", 2, '123-123', 1000),
+("Tom_t3", 3, '123456', 1001),
+("Jane_t3", 4, '999-999-999',1011),
+("Cathy_t3", 5, '555-55555', 1111);
+
+# Update新資訊，EX:補上電話號碼
+UPDATE Employee_Info 
+SET Phone_number = '123-4567'
+WHERE Person_name = 'Fred_1';
+
+# Update新資訊，EX:改名字
+UPDATE Employee_Info  
+SET Person_name = 'Fred_7'
+WHERE Employee_ID = 102;
+
+# Update新資訊，EX:改電話
+UPDATE Employee_Info  
+SET Phone_number = '246-8101'
+WHERE Employee_ID = 102;
+
+# Update新資訊，小心! 沒有用WHERE限定條件，就會所有row都update
+UPDATE Employee_Info  
+SET Note = 'check';
+
+# 用UPDATE將受manager101管轄的人的田改成farm 5
+UPDATE Employee_Info 
+SET Farm_id = 5
+WHERE Manager = 101;
+
+SELECT * FROM Employee_Info;
+
+# 用UPDATE將受manager101管轄的人的田改成farm5
+# 並且新增受聘日=2024-04-16
+# 並且標註new farm
+UPDATE Employee_Info 
+SET Farm_id = 3, 
+    Hire_date ='2024-04-16',
+    Note ='new farm'
+WHERE Manager = 101;
+
+SELECT * FROM Employee_Info;
+
+# CONCAT()將字串合起來
+SELECT CONCAT('I', ' am', ' team', ' dog'); 
+
+# UPDATE + CONCAT()
+UPDATE Employee_Info 
+SET Farm_id = 4, 
+    Hire_date ='2024-04-10',
+    Note ='farm'
+WHERE Employee_ID IN (114,115); # 先將mananger101的兩個員工調到farm4
+
+SELECT * FROM Employee_Info
+JOIN Farm_Info ON Employee_Info.Farm_id = Farm_Info.Farm_ID; # check一下
+
+UPDATE Employee_Info
+JOIN Farm_Info ON Employee_Info.Farm_id = Farm_Info.Farm_ID 
+SET Note = CONCAT('Farm: ', Farm_Info.Farm_name, ' Date: ', Hire_date)
+WHERE Manager =101;
+
+SELECT * FROM Employee_Info
+JOIN Farm_Info ON Employee_Info.Farm_id = Farm_Info.Farm_ID;
+
+# DELETE_1
+SELECT * FROM Employee_Info
+WHERE Manager = 101 AND Farm_id = 3; # check
+
+DELETE FROM Employee_Info 
+WHERE Manager = 101 AND Farm_id = 3;
+
+SELECT * FROM Employee_Info
+WHERE Manager = 101 AND Farm_id = 3; # check
+
+# 小心使用DELETE 跟 TRUNCATE，有可能不小心刪掉所有東西
+DELETE FROM Trial_Info;
+TRUNCATE TABLE Trial_Info; 
