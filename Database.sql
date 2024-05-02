@@ -520,3 +520,166 @@ WHERE Manager = 101 AND Farm_id = 3; # check
 # 小心使用DELETE 跟 TRUNCATE，有可能不小心刪掉所有東西
 DELETE FROM Trial_Info;
 TRUNCATE TABLE Trial_Info; 
+
+### MySQL part5 ###
+# 這裡是用r11628111_field_trial這個database
+SHOW Databases;
+USE r11628111_field_trial;
+SHOW Tables;
+
+# 查看建table需要那些元素
+DESCRIBE Company_Info;
+SHOW CREATE TABLE Company_Info;
+
+# CREATE TABLE_1
+SHOW CREATE TABLE Farm_Info;
+
+CREATE TABLE IF NOT EXISTS Farm_Info(
+# 記得加"IF NOT EXISTS"，不然會error，因為Farm_Info這個table已經存在了
+ Farm_ID int NOT NULL AUTO_INCREMENT, # Primary key
+ Farm_Name varchar(255) NOT NULL,
+ PRIMARY KEY(Farm_ID) # 宣告要設定Farm_ID為Primary key
+); # 因為Farm__Info已經存在，所以這個程式可以執行，但無事發生
+
+# CREATE TABLE_2
+SHOW Tables; # check一下那些table已經存在
+
+CREATE TABLE IF NOT EXISTS Job_Info(
+ Job_ID int NOT NULL AUTO_INCREMENT,
+ Job_Title varchar(127) NOT NULL,
+ PRIMARY KEY(Job_ID)
+);
+
+SHOW Tables; # check一下Job_Info有沒有建成功
+SHOW CREATE TABLE Job_Info;
+DESCRIBE Job_Info;
+
+# insert資料到table
+INSERT INTO Job_Info (Job_Title) Values
+('Manager'), ('CEO'), ('Temp_worker');
+
+SELECT * FROM Job_Info;
+
+# 加入FOREIGN KEY
+DESCRIBE Company_Info;
+
+CREATE TABLE IF NOT EXISTS Job_Info_take2(
+Job_ID int NOT NULL AUTO_INCREMENT,
+Job_desc varchar(255), # Job_desc = job describe
+Company_id int,
+CONSTRAINT FK_job_company_id FOREIGN KEY(Company_id) # FK=foreign key
+  REFERENCES Company_Info (Company_ID),
+PRIMARY KEY(Job_ID)
+);
+
+DESCRIBE Job_Info_take2; # check結果
+SELECT * FROM Company_Info; # check結果
+
+# insert資料到Job_Info_take2
+INSERT INTO Job_Info_take2 (Job_desc, Company_id) # 不能打(Job_ID, Company_id)，因為Job_ID是primary key
+  VALUES ('CEO', 1);
+
+SELECT * FROM Job_Info_take2
+JOIN Company_Info
+ON Job_Info_take2.Company_id = Company_Info.Company_ID; # check
+
+# insert foreign key只能insert其已經存在的範圍
+INSERT INTO Job_Info_take2 (Job_desc, Company_id) # 不能打(Job_ID, Company_id)，因為Job_ID是primary key
+  VALUES ('CEO', 5); # 會跑error，因為Company_id是foreign key且最多只到2
+ 
+# 刪除table，小心使用! drop前記得檢查自己有再create一次的資料或code
+SHOW Tables;
+DROP TABLE Job_Info;
+DROP TABLE Job_Info; # 會跑error，因為剛剛已經drop完，Job_Info已經不存在，不能再drop
+DROP TABLE IF EXISTS Job_Info; # 這樣修改才不會error
+
+# 修改table內容
+ALTER TABLE Employee_Info 
+  ADD Job_desc varchar(255); # 新增一個colum
+  
+DESCRIBE Employee_Info; # check
+
+ALTER TABLE Employee_Info 
+  DROP Job_desc; # 刪除一個colum
+  
+DESCRIBE Employee_Info; # check
+
+ALTER TABLE Employee_Info 
+  ADD Job_desc varchar(255) AFTER Person_name; # 新增一個colum，希望這個colum位置再Person_name後面
+
+DESCRIBE Employee_Info; # check
+
+ALTER TABLE Employee_Info 
+  MODIFY Job_desc int; # MODIFY = 修改欄的"資料性質"
+
+DESCRIBE Employee_Info; # check
+
+ALTER TABLE Employee_Info 
+  CHANGE COLUMN Job_desc Job_id int; # CHANGE COLUMN = 修改欄的"名稱"
+ 
+DESCRIBE Employee_Info; # check
+
+ALTER TABLE Employee_Info 
+  ADD CONSTRAINT FK_job_take2 FOREIGN KEY (Job_id)
+  REFERENCES Job_Info_take2 (Job_ID);
+ 
+# 只是準備一下之後要用的資料
+SELECT * FROM Employee_Info;
+SELECT * FROM Job_Info_take2;
+DELETE FROM Job_Info_take2;
+
+INSERT INTO Job_Info_take2 (Job_desc) 
+VALUES('CEO'),('Manager'),('Temp_worker');
+
+SELECT * FROM Job_Info_take2;
+
+# 比較3種update的方法
+# 1 #
+UPDATE Employee_Info SET Job_id=2;
+
+SELECT * FROM Employee_Info; # check
+
+# 2 #
+UPDATE Employee_Info 
+  SET Employee_Info.Job_id=1
+  WHERE Employee_Info.Person_name = 'Fred_1';
+
+SELECT * FROM Employee_Info; # check
+
+# 3 #
+UPDATE Employee_Info
+  SET Employee_Info.Job_id = (
+    SELECT Job_id FROM Job_Info_take2 
+    WHERE Job_desc = 'Temp_worker'
+  )
+  WHERE Employee_Info.Person_name = 'Fred_1'
+
+SELECT * FROM Employee_Info; # check
+
+# 顯示所有table name = "Employee_Info"的constraints
+SELECT *
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+WHERE TABLE_NAME = 'Employee_Info';
+
+SHOW CREATE TABLE Employee_Info;
+
+# 加入Job_rank這個column，並且限定她的範圍只能1~5
+# ALTER TABLE Job_Info_take2
+# DROP Job_rank;
+
+ALTER TABLE Job_Info_take2 ADD Job_rank int;
+DESCRIBE Job_Info_take2;
+SELECT * FROM Job_Info_take2;
+
+ALTER TABLE Job_Info_take2
+  ADD CONSTRAINT CHK_ranking
+      CHECK(Job_rank > 0 AND Job_rank < 6);
+
+SHOW CREATE TABLE Job_Info;
+
+INSERT INTO Job_Info_take2(Job_desc, Job_rank)
+  VALUES('basic_job', 6); # 會error，因為Joob_rank已經限定是1-5的整數
+
+# 如何去除Job_rank 1-5整數的限制?
+ALTER TABLE Job_Info_take2
+  DROP CONSTRAINT CHK_ranking;
